@@ -1,0 +1,493 @@
+/* Global foundation: theme tokens + base element styles + the HUD utility
+   layer. Component-specific rules live in each component's scoped <style>;
+   the design tokens, document-level base, background texture, and the shared
+   .hud-* / .t-* utilities belong here. The agent-accent cascade (lib/theme.ts)
+   overrides the accent/border vars at runtime so the whole UI takes on the
+   active agent's color — every accent-derived effect below MUST read those
+   vars (or color-mix from them), never a hardcoded teal. */
+
+:root {
+  /* Cyberpunk palette */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #0e0e16;
+  --bg-tertiary: #14141f;
+  --bg-input: #0b0b12;
+  --bg-surface: rgba(14, 14, 22, 0.85);
+  --bg-panel: rgba(20, 20, 31, 0.6);
+  --border: rgba(0, 212, 170, 0.08);
+  --border-strong: rgba(0, 212, 170, 0.18);
+  --text-primary: #e8edff;
+  --text-secondary: #b3bbd6;
+  --text-muted: #8c93b6;
+
+  /* Accent — green-teal default. lib/theme.ts overrides every var below
+     (plus --border / --border-strong) per agent, cascading the agent's
+     identity through the entire interface. The hex defaults here are only
+     what's seen before an agent loads. */
+  --accent: #00d4aa;
+  --accent-faint: rgba(0, 212, 170, 0.05);
+  --accent-dim: rgba(0, 212, 170, 0.10);
+  --accent-soft: rgba(0, 212, 170, 0.12);
+  --accent-edge: rgba(0, 212, 170, 0.20);
+  --accent-glow: rgba(0, 212, 170, 0.25);
+  --accent-purple: #b83dff;
+  --accent-purple-dim: rgba(184, 61, 255, 0.1);
+  --accent-purple-glow: rgba(184, 61, 255, 0.25);
+  --accent-pink: #ff2d7c;
+
+  /* Reasoning accent — warm amber (thinking blocks, reasoning toggles). */
+  --accent-reason: #ffb84d;
+  --accent-reason-dim: rgba(255, 184, 77, 0.10);
+  --accent-reason-glow: rgba(255, 184, 77, 0.28);
+
+  --success: #00ff88;
+  --error: #ff2d7c;
+  --warning: #ffaa00;
+
+  /* Agent accent (overridden per-agent via lib/theme.ts) */
+  --agent-accent: #00d4aa;
+  --agent-accent-dim: rgba(0, 212, 170, 0.1);
+  --agent-accent-glow: rgba(0, 212, 170, 0.25);
+
+  /* Corner cut sizes — sm for chips/buttons, base for cards, lg for hero
+     surfaces (modals, lobby avatar). */
+  --cut: 10px;
+  --cut-sm: 6px;
+  --cut-lg: 16px;
+
+  /* The chat conversation column. Assistant turns span its full width and
+     user turns right-align WITHIN it, so both share the same rails (the old
+     1400px column left them a screen apart on wide monitors). */
+  --chat-column-max: 1150px;
+
+  --font-display: 'Rajdhani', 'Segoe UI', sans-serif;
+  --font-mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --font-terminal: 'Share Tech Mono', 'Cascadia Code', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* HUD framing (shared utility layer below). --hud-tag-bg is the color a
+     panel label paints behind itself to "cut" the border it sits on — set it
+     per-surface to match what's underneath the panel. */
+  --hud-tag-bg: var(--bg-primary);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* Mobile click reliability — kill the synthetic ghost-click iOS/Android fire
+   alongside a real tap on controls that could double-tap-zoom. */
+button, textarea { touch-action: manipulation; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  /* The document never scrolls — scrolling happens inside the messages pane. */
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+  position: relative;
+  background: var(--bg-primary);
+}
+
+/* ── Background texture — corner glows + accent grid (static, compositor-
+   cached; no blur, no animation, no per-frame cost). ─────────────────────── */
+#app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    /* corner glows: agent accent top-left, fixed purple bottom-right */
+    radial-gradient(ellipse at 0% 0%, var(--accent-faint) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(184, 61, 255, 0.035) 0%, transparent 50%),
+    /* blueprint grid, whisper-quiet, follows the agent accent */
+    linear-gradient(color-mix(in srgb, var(--accent) 2.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 2.5%, transparent) 1px, transparent 1px);
+  background-size: auto, auto, 52px 52px, 52px 52px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* CRT scanlines + edge vignette — monochrome, sits over the grid. */
+#app::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.32) 100%),
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 0px, rgba(0, 0, 0, 0.16) 1px, transparent 1px, transparent 3px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scrollbar — thin, accent-tinted */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-edge); }
+
+/* Focus visibility — keyboard nav gets the accent ring; mouse clicks don't. */
+:focus-visible { outline: 1px solid var(--accent-edge); outline-offset: 1px; }
+
+::selection { background: var(--accent-soft); }
+
+/* ── HUD utility layer — shared chrome vocabulary ─────────────────────────
+   .hud-panel  — a framed instrument cluster (profile-bar groups, sidebar
+                 sections). Hover lifts the frame to the accent.
+   .hud-tag    — the fieldset-style micro label that cuts the panel's top
+                 border (set --hud-tag-bg to the color BEHIND the panel).
+   .t-label    — Rajdhani micro caption (section headers, chip text).
+   .t-term     — terminal mono micro text (telemetry, timestamps).         */
+.hud-panel {
+  position: relative;
+  border: 1px solid var(--border-strong);
+  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
+  transition: border-color 0.2s;
+}
+.hud-panel::before {
+  /* top-left tick */
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 7px;
+  height: 7px;
+  border-top: 1px solid var(--accent-edge);
+  border-left: 1px solid var(--accent-edge);
+  transition: border-color 0.2s;
+  pointer-events: none;
+}
+.hud-panel::after {
+  /* bottom-right bracket */
+  content: '';
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid var(--accent-edge);
+  border-bottom: 1px solid var(--accent-edge);
+  transition: border-color 0.2s;
+  pointer-events: none;
+}
+.hud-panel:hover { border-color: var(--accent-edge); }
+.hud-panel:hover::before, .hud-panel:hover::after { border-color: var(--accent); }
+
+.hud-tag {
+  position: absolute;
+  top: -7px;
+  left: 8px;
+  padding: 0 5px;
+  background: var(--hud-tag-bg);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  line-height: 13px;
+  transition: color 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.hud-panel:hover > .hud-tag { color: var(--accent); }
+
+.t-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+}
+.t-term {
+  font-family: var(--font-terminal);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+/* Sidebar section grammar — `// label` header row with an optional action
+   button. Shared by the core sidebar (agents/sessions) and the room
+   accordions so every section speaks the same visual language. */
+.side-sect {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 28px;
+}
+.side-sect-label {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.side-sect::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--border-strong), transparent);
+  order: 2;
+}
+.side-sect-label { order: 1; }
+.side-sect-btn { order: 3; }
+.side-sect-btn {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.side-sect-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: var(--accent-faint); }
+.side-sect-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Accordion-header variant of the section row — the `// label` IS the
+   expand/collapse control (skills / cron / heartbeat / tools / systems all
+   speak this). Children: .arrow, .label, optional .count. */
+.side-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s;
+}
+.side-toggle:hover { color: var(--accent); }
+.side-toggle .arrow { font-size: 10px; color: var(--accent); transition: transform 0.15s; }
+.side-toggle .arrow.open { transform: rotate(90deg); }
+.side-toggle .count { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+@media (prefers-reduced-motion: reduce) {
+  .side-toggle .arrow { transition: none; }
+}
+
+/* ── Systems-deck kit — shared chrome for the deck tabs (skills / cron /
+   heartbeat / tools); each tab keeps only what's unique to it. ─────────── */
+/* Primary save action — accent slab, success flash on landing. */
+.deck-save {
+  padding: 7px 18px;
+  background: var(--accent);
+  border: none;
+  color: var(--bg-primary);
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  transition: box-shadow 0.15s, opacity 0.15s;
+}
+.deck-save:hover:not(:disabled) { box-shadow: 0 0 14px var(--accent-glow); }
+.deck-save:disabled { opacity: 0.35; cursor: default; }
+.deck-save.flash { background: var(--success); }
+
+/* `// label` section header inside deck content (between form and history). */
+.deck-sect {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Framed content card — the deck's bordered panel (config blocks, forms). */
+.deck-card {
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--border-strong);
+  background: linear-gradient(180deg, var(--accent-faint), transparent 120px);
+  padding: 16px;
+}
+
+/* ── Markdown body — every surface that renders model markdown (chat
+   StreamingText, channel live/static text, the text viewer's rendered mode)
+   tags its container .md-body. The islands write these children
+   imperatively, so the rules must be global; smd emits plain h1-h6 / p /
+   ul / pre / table etc., which otherwise render with raw browser defaults
+   (the "weird fonts" of the first port — serif-scale headings, 40px list
+   indents, default-blue links). ─────────────────────────────────────────── */
+.md-body { line-height: 1.6; }
+.md-body > :first-child { margin-top: 0 !important; }
+.md-body > :last-child { margin-bottom: 0 !important; }
+
+.md-body p { margin: 0 0 10px; }
+
+.md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 1px;
+  line-height: 1.3;
+  margin: 18px 0 8px;
+}
+.md-body h1 { font-size: 19px; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; }
+.md-body h2 { font-size: 17px; color: var(--accent); }
+.md-body h3 { font-size: 15.5px; color: var(--text-primary); }
+.md-body h4, .md-body h5, .md-body h6 { font-size: 14px; color: var(--text-primary); }
+.md-body h1::before, .md-body h2::before { content: '// '; opacity: 0.55; }
+
+.md-body ul, .md-body ol { margin: 4px 0 10px; padding-left: 22px; }
+.md-body li { margin: 3px 0; }
+.md-body li > ul, .md-body li > ol { margin: 2px 0; }
+.md-body ul li::marker { color: var(--accent); }
+.md-body ol li::marker { color: var(--accent); font-family: var(--font-mono); font-size: 12px; }
+
+.md-body blockquote {
+  margin: 8px 0 10px;
+  padding: 6px 14px;
+  border-left: 2px solid var(--accent-edge);
+  background: var(--accent-faint);
+  color: var(--text-secondary);
+}
+.md-body blockquote p:last-child { margin-bottom: 0; }
+
+.md-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--accent-edge); }
+.md-body a:hover { text-decoration-color: var(--accent); text-shadow: 0 0 8px var(--accent-glow); }
+
+.md-body strong { color: var(--text-primary); font-weight: 600; }
+
+.md-body hr {
+  border: none;
+  height: 1px;
+  margin: 14px 0;
+  background: linear-gradient(to right, var(--border-strong), transparent);
+}
+
+.md-body code {
+  font-family: var(--font-mono);
+  background: var(--accent-faint);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 0;
+  font-size: 13px;
+}
+.md-body pre {
+  background: rgba(8, 8, 14, 0.9);
+  border: 1px solid var(--border-strong);
+  border-left: 2px solid var(--accent);
+  border-radius: 0;
+  padding: 12px;
+  margin: 8px 0 12px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.md-body pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+.md-body table {
+  border-collapse: collapse;
+  margin: 10px 0 12px;
+  font-size: 13px;
+  display: block;        /* wide tables scroll instead of blowing the bubble */
+  max-width: 100%;
+  overflow-x: auto;
+}
+.md-body th {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  text-align: left;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--accent-edge);
+  white-space: nowrap;
+}
+.md-body td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.md-body img { max-width: 100%; }
+
+/* ── Message-bubble kit (shared by views/Message + rooms/channel via
+   components/MessageShell) — the action chip, the chip row at a bubble's
+   foot, and the user "input echo" text with its prompt glyph. ──────────── */
+.user-text { white-space: pre-wrap; word-wrap: break-word; }
+.user-text::before {
+  content: '❯ ';
+  font-family: var(--font-terminal);
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.msg-action {
+  align-self: flex-end;
+  flex-shrink: 0;
+  margin-top: 6px;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+}
+.msg-action:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
+.msg-action.playing { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+.msg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.msg-actions .msg-action { margin-top: 0; }
+
+/* ── Mobile root (ported from ui/styles.css's 768px block) ─────────────── */
+@media (max-width: 768px) {
+  :root {
+    --cut: 6px;
+    --cut-sm: 4px;
+    --cut-lg: 10px;
+  }
+
+  /* Lock the body so the soft keyboard can't drag the page up underneath
+     #app (iOS Safari scrolls the layout viewport on textarea focus);
+     overscroll-behavior stops pull-to-refresh fighting the messages scroll. */
+  html, body {
+    overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+  }
+
+  #app {
+    height: 100dvh;
+  }
+}
+
+/* Streamed-text chunk fade (used by the reveal clock in increment 2b). */
+.char-fade { display: inline; animation: chunk-fade-in 140ms ease-out both; }
+@keyframes chunk-fade-in {
+  from { opacity: 0; filter: blur(0.4px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .char-fade { animation: none; }
+}

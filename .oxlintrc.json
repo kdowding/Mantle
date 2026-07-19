@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "reference",
+    "ui/src/lib/smd.js"
+  ],
+  "rules": {},
+  "overrides": [
+    {
+      "files": ["*.svelte"],
+      "rules": {
+        "no-unassigned-vars": "off"
+      }
+    }
+  ]
+}

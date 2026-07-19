@@ -1,0 +1,42 @@
+name: Bug report
+description: Something broke, misbehaved, or didn't match the docs
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you do, what happened, what did you expect instead?
+      placeholder: |
+        1. Fresh clone, `bun install`, `./start.sh`
+        2. Opened the setup wizard, clicked …
+        3. Expected …, got …
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: OS + Bun version (`bun --version`)
+      placeholder: e.g. Windows 11 / Bun 1.3.14, or Ubuntu 24.04 / Bun 1.3.14
+    validations:
+      required: true
+  - type: input
+    id: backend
+    attributes:
+      label: Backend in use
+      description: Which provider backend was active, if relevant
+      placeholder: e.g. anthropic/api, openai/subscription, local (model name)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Relevant server output (the foreground console, or `.mantle/mantle.log` on macOS/Linux)
+        and browser console errors. REDACT anything sensitive — never paste API keys or tokens.
+      render: text
+  - type: input
+    id: commit
+    attributes:
+      label: Version / commit
+      placeholder: git rev-parse --short HEAD

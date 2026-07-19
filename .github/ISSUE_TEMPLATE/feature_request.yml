@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a feature or change — the required first step before a feature PR
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        MANTLE is a personal project with a strong vision (a companion harness, not a
+        general coding tool). Proposals are genuinely welcome — this issue is where fit
+        gets decided, *before* anyone writes code. See CONTRIBUTING.md.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can't you do today, or what is worse than it should be?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed shape
+      description: How might it work? Rough is fine — the discussion is the point.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you tried, or other shapes this could take.

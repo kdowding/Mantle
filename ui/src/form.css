@@ -1,0 +1,92 @@
+/* Form kit — the shared modal-form design language. Every form-bearing modal
+   (agents, cron, channel…) wraps its fields in `<div class="form">` and gets
+   this for free; component <style> blocks keep only what's unique to them.
+   All rules are scoped under .form so the generic class names (.row, .field,
+   .section, .check) can't leak into non-form markup. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Type scale (one knob per role). The dense systems-deck + auth forms keep
+     this base; modals override it larger below (.modal-body .form). */
+  --form-label: 10px;
+  --form-input: 13px;
+  --form-hint: 10px;
+  --form-error: 12px;
+}
+
+/* Accent-colored group divider. */
+.form .section {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: var(--form-label);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 3px;
+}
+
+.form .row { display: flex; gap: 10px; }
+.form .row .field { flex: 1; min-width: 0; }
+
+.form .field { display: flex; flex-direction: column; gap: 3px; }
+.form .field > span {
+  font-family: var(--font-display);
+  font-size: var(--form-label);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+.form .field input[type='text'],
+.form .field input[type='number'],
+.form .field input:not([type]),
+.form .field select,
+.form .field textarea {
+  padding: 6px 9px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--form-input);
+}
+.form .field input[type='color'] {
+  height: 31px;
+  padding: 2px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+}
+.form .field textarea { resize: vertical; min-height: 56px; }
+.form .field input:focus,
+.form .field select:focus,
+.form .field textarea:focus { outline: none; border-color: var(--accent); }
+
+/* Side-by-side controls inside one field (e.g. value + unit). */
+.form .inline { display: flex; gap: 6px; }
+.form .inline input, .form .inline select { flex: 1; min-width: 0; }
+
+.form .hint { font-size: var(--form-hint); color: var(--text-muted); font-style: normal; }
+
+.form .check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--form-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.form .check input { accent-color: var(--accent); }
+
+.form .error { color: var(--error); font-size: var(--form-error); }
+
+/* Modals get a larger, more readable scale than the dense deck/auth forms.
+   Scoped to the canonical modal body, so the systems-deck + login forms keep
+   their compact base. */
+.modal-body .form {
+  --form-label: 12px;
+  --form-input: 14px;
+  --form-hint: 12px;
+  --form-error: 13px;
+}

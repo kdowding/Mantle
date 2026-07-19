@@ -1,0 +1,34 @@
+# MANTLE voice sidecar deps — the chatterbox-STREAMING era (original 0.5B model,
+# generate_stream API), NOT the turbo-era chatterbox-tts. Installed into the
+# dedicated .venv-streaming venv.
+#
+# The "Set up now" voice provisioner (Settings -> Features) installs these for you
+# via uv with GPU-aware torch backend selection. This file is the manual fallback:
+#
+#   uv venv .venv-streaming --python 3.11
+#   uv pip install --python .venv-streaming/Scripts/python.exe torch torchaudio --torch-backend=auto
+#   uv pip install --python .venv-streaming/Scripts/python.exe -r voice/requirements.txt
+#
+# (POSIX: swap Scripts/python.exe for bin/python. With plain pip instead of uv,
+#  select the CUDA torch build via --index-url https://download.pytorch.org/whl/cu124.)
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.0.0
+
+# TTS — chatterbox-streaming (davidbrowne17's fork: original 0.5B chatterbox with
+# a generate_stream() API). Provides the `chatterbox` module the sidecar imports.
+chatterbox-streaming
+
+# STT — faster-whisper (ctranslate2-backed, much faster than openai-whisper)
+faster-whisper>=1.1.0
+
+# VAD — Silero (loaded and warmed alongside TTS)
+silero-vad>=5.1.2
+
+# Audio stack — torch/torchaudio pinned explicitly so the CUDA build is chosen at
+# install time (uv --torch-backend=auto, or pip --index-url …/whl/cu124).
+torch>=2.5.0
+torchaudio>=2.5.0
+librosa>=0.10.0
+numpy>=1.26.0

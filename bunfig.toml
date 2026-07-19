@@ -1,0 +1,9 @@
+[run]
+# Default entrypoint
+main = "src/index.ts"
+
+[test]
+# Scope test discovery to mantle's own source so the studied reference/ clones
+# (e.g. reference/hermes-agent) never pollute the run. `bun test src` also still
+# substring-matches reference paths, so the package.json script passes no filter.
+root = "src"
